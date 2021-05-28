@@ -83,6 +83,18 @@ def GetEC2InstanceData():
         result.append(record)
     return result
 
+def GetSecurityGroups():
+    client = boto3.client('ec2')
+    resource = boto3.resource('ec2')
+    result = [['Id', 'Name', 'Description', 'VPC', 'Tags']]
+    for sg in client.describe_security_groups()['SecurityGroups']:
+        securityGroup = resource.SecurityGroup(sg['GroupId'])
+        tags  = ""
+        if securityGroup.tags!=None:
+            for tag in securityGroup.tags:
+                tags = tag['Key'] + ":" + tag['Value'] + ";"
+        result.append([sg['GroupId'], sg['GroupName'], securityGroup.description, securityGroup.vpc_id, tags])
+    return result
 
 def GetUsers():
     iamClient = boto3.client('iam')
@@ -98,6 +110,7 @@ class DataPanel(wx.Panel):
     def __init__(self, parent, dataFunction):
         wx.Panel.__init__(self, parent)
         dataGrid = wx.grid.Grid(self)
+        # TODO: resolverlo todo en una llamada a dataFuntion()
         colLabels = dataFunction()[0]
         dataGrid.CreateGrid(0, len(colLabels))
         row = -1
@@ -134,6 +147,12 @@ class ThreadedPanel(wx.Panel):
             col = col + 1
         self.dataGrid.AutoSize()
 
+    def DeleteRows(self, pos=0, numRows=1, updateLabels=True):
+        return self.dataGrid.DeleteRows(pos, numRows, updateLabels)
+
+    def GetNumberRows(self):
+        return self.dataGrid.GetNumberRows()
+
 
 class GetInstancesThread(threading.Thread):
 
@@ -147,12 +166,12 @@ class GetInstancesThread(threading.Thread):
     def run(self):
         for regionName in self.regions:
             self.client = boto3.client('ec2', region_name=regionName)
-            self.ec2 = boto3.resource('ec2', region_name=regionName)
+            self.resource = boto3.resource('ec2', region_name=regionName)
             try:
                 instances = self.client.describe_instances()
                 for instanceData in instances['Reservations']:
                     instanceId = instanceData['Instances'][0]['InstanceId']
-                    instance = self.ec2.Instance(instanceId)
+                    instance = self.resource.Instance(instanceId)
                     record = []
                     record.append(instanceData['Instances'][0]['InstanceId'])
                     record.append(instanceData['Instances'][0]['InstanceType'])

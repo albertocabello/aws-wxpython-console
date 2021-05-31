@@ -38,8 +38,6 @@ class MainFrame(wx.Frame):
         self.getInstances.start()
 
     def RefreshData(self, event):
-        # TODO: Actualizar solamente las celdas que cambien.
-        self.tabEC2.DeleteRows(numRows=self.tabEC2.GetNumberRows())
         instancesData = Resources.GetInstancesThread(self.tabEC2)
         instancesData.start()
 

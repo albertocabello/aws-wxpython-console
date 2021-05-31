@@ -109,23 +109,22 @@ class DataPanel(wx.Panel):
     
     def __init__(self, parent, dataFunction):
         wx.Panel.__init__(self, parent)
-        dataGrid = wx.grid.Grid(self)
-        # TODO: resolverlo todo en una llamada a dataFuntion()
-        colLabels = dataFunction()[0]
-        dataGrid.CreateGrid(0, len(colLabels))
+        self.dataGrid = wx.grid.Grid(self)
         row = -1
         for dataRecord in dataFunction():
             if row == -1:
+                colLabels = dataRecord
+                self.dataGrid.CreateGrid(0, len(colLabels))
                 for col in range(len(colLabels)):
-                    dataGrid.SetColLabelValue(col, colLabels[col])
+                    self.dataGrid.SetColLabelValue(col, colLabels[col])
             else:
-                dataGrid.AppendRows()
+                self.dataGrid.AppendRows()
                 col = 0
                 for value in dataRecord:
-                   dataGrid.SetCellValue(row, col, value)
+                   self.dataGrid.SetCellValue(row, col, value)
                    col = col + 1
             row = row + 1
-        dataGrid.AutoSize()
+        self.dataGrid.AutoSize()
 
 
 class ThreadedPanel(wx.Panel):
@@ -136,6 +135,7 @@ class ThreadedPanel(wx.Panel):
         self.dataGrid.CreateGrid(0, len(colLabels))
         for col in range(len(colLabels)):
             self.dataGrid.SetColLabelValue(col, colLabels[col])
+        self.resourcesDict = {}
         self.dataGrid.AutoSize()
 
     def AppendRow(self, dataRecord):
@@ -145,10 +145,25 @@ class ThreadedPanel(wx.Panel):
         for value in dataRecord:
             self.dataGrid.SetCellValue(row, col, value)
             col = col + 1
+        self.resourcesDict[dataRecord[0]] = row
+        for resourceId, rowNumber in self.resourcesDict.items():
+            print(resourceId, rowNumber)
         self.dataGrid.AutoSize()
 
     def DeleteRows(self, pos=0, numRows=1, updateLabels=True):
         return self.dataGrid.DeleteRows(pos, numRows, updateLabels)
+
+    def UpdateRow(self, dataRecord):
+        row = self.resourcesDict.get(dataRecord[0], -1)
+        if row == -1:
+            debug_print("{0} no está.".format(dataRecord[0]))
+            self.AppendRow(dataRecord)
+        else:
+            col = 0
+            for value in dataRecord:
+                debug_print("Actualizando {0}, {1}".format(dataRecord[0], row))
+                self.dataGrid.SetCellValue(row, col, value)
+                col = col + 1
 
     def GetNumberRows(self):
         return self.dataGrid.GetNumberRows()
@@ -181,6 +196,6 @@ class GetInstancesThread(threading.Thread):
                         if tag['Key'] == "Name":
                             record.append(tag['Value'])
                     record.append(instanceData['Instances'][0]['State']['Name'])
-                    wx.CallAfter(self.control.AppendRow, record)
+                    wx.CallAfter(self.control.UpdateRow, record)
             except:
                 print("Error getting data from region {0}.".format(regionName))

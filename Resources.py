@@ -99,6 +99,7 @@ class ThreadedPanel(wx.Panel):
     def __init__(self, parent, colLabels):
         wx.Panel.__init__(self, parent)
         self.dataGrid = wx.grid.Grid(self)
+        self.dataGrid.EnableEditing(False)
         self.dataGrid.CreateGrid(0, len(colLabels))
         for col in range(len(colLabels)):
             self.dataGrid.SetColLabelValue(col, colLabels[col])

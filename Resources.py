@@ -27,7 +27,7 @@ def GetBuckets():
     return result
 
 
-class GetInstances:
+class GetInstance:
 
     def __init__(self, region = 'eu-west-1'):
         self.client = boto3.client('ec2', region_name=region)
@@ -43,45 +43,12 @@ class GetInstances:
     def Instance(self, InstanceId):
         return self.ec2.Instance(InstanceId)
 
+    def Stop(self, instanceID):
+        self.client.stop_instances(InstanceIds=[instanceID])
 
-def GetInstanceDataEU():
-    RegionsEU = ['eu-west-1', 'eu-west-2', 'eu-west-3', 'eu-north-1', 'eu-central-1', 'eu-south-1']
-    result = []
-    for region in RegionsEU:
-        debug_print("Getting", region, "data.")
-        try:
-            result = result + GetInstances(region).ListInstanceData()
-        except:
-            debug_print("Error getting", region, "data.")
-    return result
+    def Start(self, instanceID):
+        self.client.start_instances(InstanceIds=[instanceID])
 
-
-def GetInstanceDataUS():
-    RegionsUS = ['us-west-1', 'us-west-2', 'us-east-1', 'us-east-2']
-    result = []
-    for region in RegionsUS:
-        debug_print("Getting", region, "data.")
-        try:
-            result = result + GetInstances(region).ListInstanceData()
-        except:
-            debug_print("Error getting", region, "data.")
-    return result
-
-
-def GetEC2InstanceData():
-    result = [['Id', 'Type', 'AZ', 'Private IP', 'Name', 'State'] ]
-    for instance in GetInstanceDataEU():
-        record = []
-        record.append(instance['InstanceId'])
-        record.append(instance['InstanceType'])
-        record.append(instance['Placement']['AvailabilityZone'])
-        record.append(instance['PrivateIpAddress'])
-        for tag in instance['Tags']:
-            if tag['Key'] == "Name":
-               record.append(tag['Value'])
-        record.append(instance['State']['Name'])
-        result.append(record)
-    return result
 
 def GetSecurityGroups():
     client = boto3.client('ec2')
@@ -99,9 +66,9 @@ def GetSecurityGroups():
 def GetUsers():
     iamClient = boto3.client('iam')
     users = iamClient.list_users()
-    result = [['Name', 'Id', 'ARN']]
+    result = [['Id', 'Name', 'ARN']]
     for user in users['Users']:
-        result.append([user['UserName'], user['UserId'],user['Arn']])
+        result.append([user['UserId'], user['UserName'], user['Arn']])
     return result
 
 
@@ -145,9 +112,15 @@ class ThreadedPanel(wx.Panel):
         for value in dataRecord:
             self.dataGrid.SetCellValue(row, col, value)
             col = col + 1
+            if value == "running":
+                self.dataGrid.SetCellBackgroundColour(row, col, (0, 255, 0))
+            elif value == "stopped":
+                self.dataGrid.SetCellBackgroundColour(row, col, (255, 0, 0))
+            elif value == "pending":
+                self.dataGrid.SetCellBackgroundColour(row, col, (255, 234, 0))
+            elif value == "stopping":
+                self.dataGrid.SetCellBackgroundColour(row, col, (255, 234, 0))
         self.resourcesDict[dataRecord[0]] = row
-        for resourceId, rowNumber in self.resourcesDict.items():
-            print(resourceId, rowNumber)
         self.dataGrid.AutoSize()
 
     def DeleteRows(self, pos=0, numRows=1, updateLabels=True):
@@ -156,14 +129,23 @@ class ThreadedPanel(wx.Panel):
     def UpdateRow(self, dataRecord):
         row = self.resourcesDict.get(dataRecord[0], -1)
         if row == -1:
-            debug_print("{0} no está.".format(dataRecord[0]))
+            debug_print("New item {0}.".format(dataRecord[0]))
             self.AppendRow(dataRecord)
         else:
             col = 0
             for value in dataRecord:
-                debug_print("Actualizando {0}, {1}".format(dataRecord[0], row))
+                debug_print("Updating {0} at row {1}".format(dataRecord[0], row))
                 self.dataGrid.SetCellValue(row, col, value)
+                if value == "running":
+                    self.dataGrid.SetCellBackgroundColour(row, col, (0, 255, 0))
+                elif value == "stopped":
+                    self.dataGrid.SetCellBackgroundColour(row, col, (255, 0, 0))
+                elif value == "pending":
+                    self.dataGrid.SetCellBackgroundColour(row, col, (255, 234, 0))
+                elif value == "stopping":
+                    self.dataGrid.SetCellBackgroundColour(row, col, (255, 234, 0))
                 col = col + 1
+        self.dataGrid.AutoSize()
 
     def GetNumberRows(self):
         return self.dataGrid.GetNumberRows()
@@ -192,6 +174,10 @@ class GetInstancesThread(threading.Thread):
                     record.append(instanceData['Instances'][0]['InstanceType'])
                     record.append(instanceData['Instances'][0]['Placement']['AvailabilityZone'])
                     record.append(instanceData['Instances'][0]['PrivateIpAddress'])
+                    if instanceData['Instances'][0]['State']['Name'] == "running":
+                        record.append(instanceData['Instances'][0]['PublicIpAddress'])
+                    else:
+                        record.append("None")
                     for tag in instanceData['Instances'][0]['Tags']:
                         if tag['Key'] == "Name":
                             record.append(tag['Value'])

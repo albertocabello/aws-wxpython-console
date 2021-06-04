@@ -111,16 +111,14 @@ class ThreadedPanel(wx.Panel):
         col = 0
         row = self.dataGrid.GetNumberRows() - 1
         for value in dataRecord:
+            if value == "running":
+                self.dataGrid.SetCellBackgroundColour(row, col, (128, 255, 128))
+            elif value == "stopped":
+                self.dataGrid.SetCellBackgroundColour(row, col, (255, 128, 128))
+            elif value in ["pending", "stopping", "unknown"]:
+                self.dataGrid.SetCellBackgroundColour(row, col, (255, 234, 0))
             self.dataGrid.SetCellValue(row, col, value)
             col = col + 1
-            if value == "running":
-                self.dataGrid.SetCellBackgroundColour(row, col, (0, 255, 0))
-            elif value == "stopped":
-                self.dataGrid.SetCellBackgroundColour(row, col, (255, 0, 0))
-            elif value == "pending":
-                self.dataGrid.SetCellBackgroundColour(row, col, (255, 234, 0))
-            elif value == "stopping":
-                self.dataGrid.SetCellBackgroundColour(row, col, (255, 234, 0))
         self.resourcesDict[dataRecord[0]] = row
         self.dataGrid.AutoSize()
 
@@ -136,15 +134,13 @@ class ThreadedPanel(wx.Panel):
             col = 0
             for value in dataRecord:
                 debug_print("Updating {0} at row {1}".format(dataRecord[0], row))
-                self.dataGrid.SetCellValue(row, col, value)
                 if value == "running":
-                    self.dataGrid.SetCellBackgroundColour(row, col, (0, 255, 0))
+                    self.dataGrid.SetCellBackgroundColour(row, col, (128, 255, 128))
                 elif value == "stopped":
-                    self.dataGrid.SetCellBackgroundColour(row, col, (255, 0, 0))
-                elif value == "pending":
-                    self.dataGrid.SetCellBackgroundColour(row, col, (255, 234, 0))
-                elif value == "stopping":
-                    self.dataGrid.SetCellBackgroundColour(row, col, (255, 234, 0))
+                    self.dataGrid.SetCellBackgroundColour(row, col, (255, 128, 128))
+                elif value in ["pending", "stopping", "unknown"]:
+                    self.dataGrid.SetCellBackgroundColour(row, col, (255, 234, 128))
+                self.dataGrid.SetCellValue(row, col, value)
                 col = col + 1
         self.dataGrid.AutoSize()
 

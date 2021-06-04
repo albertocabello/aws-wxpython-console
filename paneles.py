@@ -4,6 +4,7 @@ import wx
 import wx.grid
 import Actions
 import Resources
+import Extra
 
 class MainFrame(wx.Frame):
     def __init__(self):
@@ -30,6 +31,10 @@ class MainFrame(wx.Frame):
         tabSG = Resources.DataPanel(nb, dataFunction=Resources.GetSecurityGroups)
         nb.AddPage(tabSG, "Security Groups")
 
+        self.tabHTTPServers = Extra.HTTPServers(nb)
+        nb.AddPage(self.tabHTTPServers, "HTTP/HTTPS")
+        self.getHTTPServers = Extra.GetHTTPThread(self.tabHTTPServers)
+
         # Set noteboook in a sizer to create the layout
         sizer = wx.BoxSizer()
         sizer.Add(nb, -1, wx.EXPAND)
@@ -42,10 +47,11 @@ class MainFrame(wx.Frame):
     def Show(self):
         wx.Frame.Show(self)
         self.getInstances.start()
+        self.getHTTPServers.start()
 
     def RefreshData(self, event):
-        instancesData = Resources.GetInstancesThread(self.tabEC2)
-        instancesData.start()
+        Resources.GetInstancesThread(self.tabEC2).start()
+        Extra.GetHTTPThread(self.tabHTTPServers).start()
 
 if __name__ == "__main__":
     app = wx.App()

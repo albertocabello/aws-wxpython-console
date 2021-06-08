@@ -22,25 +22,31 @@ class GetHTTPThread(threading.Thread):
     def run(self):
         for HTTPServer in self.servers:
             HTTPServerName, HTTPServerPort = HTTPServer.split(":")
-            Resources.debug_print("Checking server {0}.".format(HTTPServerName))
-            connection = http.client.HTTPSConnection(HTTPServerName, HTTPServerPort, timeout=2)
+            status = "unknown"
+
             try:
-                connection.request("GET", "/")
+                connection = http.client.HTTPSConnection(HTTPServerName, HTTPServerPort, timeout=2)
+                connection.request("GET", "/", headers={"Host": HTTPServerName})
                 response = connection.getresponse()
-                status = "unknown"
-                Resources.debug_print("{0} gives {1}.".format(HTTPServer, response.status))
-                if response.status == 400:
-                    connection = http.client.HTTPConnection(HTTPServerName, HTTPServerPort, timeout=2)
-                    connection.request("GET", "/")
-                    response = connection.getresponse()
-                if response.status == 200:
+                Resources.debug_print("HTTPS {0} gives {1}.".format(HTTPServer, response.status))
+                if response.status != None:
                     status = "running"
-                record = [HTTPServerName, HTTPServerPort, status]
-                wx.CallAfter(self.control.UpdateRow, record)
             except ConnectionRefusedError:
                 record = [HTTPServerName, HTTPServerPort, "stopped"]
-                wx.CallAfter(self.control.UpdateRow, record)
-            except:
-                print("Error getting data from {0}.".format(HTTPServer))
-                record = [HTTPServerName, HTTPServerPort, "unknown"]
-                wx.CallAfter(self.control.UpdateRow, record)
+            except Exception as ex:
+                Resources.debug_print("HTTPS {0} gives error {1}.".format(HTTPServer, str(ex)))
+            
+            try:
+                connection = http.client.HTTPConnection(HTTPServerName, HTTPServerPort, timeout=2)
+                connection.request("GET", "/", headers={"Host": HTTPServerName})
+                response = connection.getresponse()
+                Resources.debug_print("HTTP {0} gives {1}.".format(HTTPServer, response.status))
+                if response.status != None:
+                    status = "running"
+            except ConnectionRefusedError:
+                status = "stopped"
+            except Exception as ex:
+                Resources.debug_print("HTTP {0} gives error {1}.".format(HTTPServer, str(ex)))
+
+            record = [HTTPServerName, HTTPServerPort, status]
+            wx.CallAfter(self.control.UpdateRow, record)

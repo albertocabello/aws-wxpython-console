@@ -175,9 +175,12 @@ class GetInstancesThread(threading.Thread):
                         record.append(instanceData['Instances'][0]['PublicIpAddress'])
                     else:
                         record.append("None")
-                    for tag in instanceData['Instances'][0]['Tags']:
-                        if tag['Key'] == "Name":
-                            record.append(tag['Value'])
+                    if "Tags" in instanceData['Instances'][0].keys():
+                        for tag in instanceData['Instances'][0]['Tags']:
+                            if tag['Key'] == "Name":
+                                record.append(tag['Value'])
+                    else:
+                        record.append("None")
                     record.append(instanceData['Instances'][0]['State']['Name'])
                     wx.CallAfter(self.control.UpdateRow, record)
             except:

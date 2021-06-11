@@ -183,5 +183,5 @@ class GetInstancesThread(threading.Thread):
                         record.append("None")
                     record.append(instanceData['Instances'][0]['State']['Name'])
                     wx.CallAfter(self.control.UpdateRow, record)
-            except:
-                print("Error getting data from region {0}.".format(regionName))
+            except Exception as ex:
+                debug_print("Error getting data from region {0}: {1}.".format(regionName, str(ex)))
